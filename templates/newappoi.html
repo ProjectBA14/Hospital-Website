@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Booking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-top: 20px;
+        }
+
+        form {
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        .btn-book {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #appointments-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const appointmentForm = document.getElementById("appointment-form");
+            const appointmentsList = document.getElementById("appointments-list");
+            const timeSelect = document.getElementById("time");
+            const doctorSelect = document.getElementById("doctor");
+            const dateInput = document.getElementById("date");
+
+            function generateTimeOptions() {
+                const startTime = new Date();
+                startTime.setHours(8, 0, 0, 0);
+
+                const endTime = new Date();
+                endTime.setHours(16, 0, 0, 0);
+
+                const timeOptions = [];
+
+                let currentTime = new Date(startTime);
+
+                while (currentTime <= endTime) {
+                    const option = document.createElement("option");
+                    option.value = currentTime.toTimeString().slice(0, 5); // Format as HH:mm
+                    option.text = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    timeOptions.push(option);
+
+                    currentTime.setMinutes(currentTime.getMinutes() + 30);
+                }
+
+                return timeOptions;
+            }
+
+            function generateDoctorOptions(selectedTime) {
+                const doctorsByTime = {
+                    "08:00": ["Dr. Smith", "Dr. Johnson"],
+                    "08:30": ["Dr. Brown", "Dr. Davis"],
+                    "09:00": ["Dr. Braun", "Dr. Johnson"],
+                    "09:30": ["Dr. Yeager", "Dr. Davis"],
+                    "10:00": ["Dr. Arlett", "Dr. Johnson"],
+                    "10:30": ["Dr. Ackermann", "Dr. Davis"],
+                    "11:00": ["Dr. Onyakopon", "Dr. Johnson"],
+                    "11:30": ["Dr. Hange", "Dr. Davis"],
+                    "12:00": ["Dr. Pokemon", "Dr. Johnson"],
+                    "12:30": ["Dr. Ketchum", "Dr. Davis"],
+                    "13:00": ["Dr. Vader", "Dr. Johnson"],
+                    "13:30": ["Dr. Skywalker", "Dr. Davis"],
+                    "14:00": ["Dr. Moonwalker", "Dr. Johnson"],
+                    "14:30": ["Dr. Obamawalker", "Dr. Davis"],
+                    // ... Add more doctors based on time slots as needed
+                };
+
+                return doctorsByTime[selectedTime] || [];
+            }
+
+            const timeOptions = generateTimeOptions();
+            timeOptions.forEach(option => timeSelect.add(option));
+
+            timeSelect.addEventListener("change", function () {
+                const selectedTime = timeSelect.value;
+                const doctorOptions = generateDoctorOptions(selectedTime);
+
+                doctorSelect.innerHTML = "";
+
+                doctorOptions.forEach(doctor => {
+                    const option = document.createElement("option");
+                    option.value = doctor;
+                    option.text = doctor;
+                    doctorSelect.add(option);
+                });
+            });
+
+            appointmentForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const name = document.getElementById("name").value;
+                const date = dateInput.value;
+                const time = document.getElementById("time").value;
+                const doctor = document.getElementById("doctor").value;
+                const medicalHistory = document.getElementById("medical-history").value;
+                const currentProblems = document.getElementById("current-problems").value;
+
+                const currentDate = new Date();
+                const selectedDate = new Date(date);
+
+                const oneWeekAhead = new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+                if (selectedDate > oneWeekAhead) {
+                    alert("Please select a date within the next week.");
+                    return;
+                }
+
+                const selectedTime = new Date(`${date} ${time}`);
+                const startTime = new Date(`${date} 08:00`);
+                const endTime = new Date(`${date} 16:00`);
+
+                if (selectedTime >= startTime && selectedTime <= endTime) {
+                    const appointmentItem = document.createElement("li");
+                    appointmentItem.innerHTML = `
+                        <strong>Name:</strong> ${name}, 
+                        <strong>Date:</strong> ${date}, 
+                        <strong>Time:</strong> ${time}, 
+                        <strong>Doctor:</strong> ${doctor},
+                        <strong>Medical History:</strong> ${medicalHistory}, 
+                        <strong>Current Problems:</strong> ${currentProblems}`;
+                    appointmentsList.appendChild(appointmentItem);
+
+                    appointmentForm.reset();
+
+                    fetch("/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams({
+                            name: name,
+                            date: date,
+                            time: time,
+                            doctor: doctor,
+                            medical_history: medicalHistory,
+                            current_problems: currentProblems,
+                        }).toString(),
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                    })
+                    .catch(error => console.error("Error:", error));
+                } else {
+                    alert("Please select a time between 8 am and 4 pm.");
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Book an Appointment</h1>
+        <form id="appointment-form" action="/" method="POST">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="date">Date:</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+            <div class="form-group">
+                <label for="time">Time:</label>
+                <select id="time" name="time" required></select>
+            </div>
+            <div class="form-group">
+                <label for="doctor">Choose a Doctor:</label>
+                <select id="doctor" name="doctor" required></select>
+            </div>
+            <div class="form-group">
+                <label for="medical-history">Medical History:</label>
+                <textarea id="medical-history" name="medical_history" rows="4" cols="50"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="current-problems">Current Problems:</label>
+                <textarea id="current-problems" name="current_problems" rows="4" cols="50"></textarea>
+            </div>
+            <button type="submit" class="btn-book">Book Appointment</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>Your Appointments</h2>
+        <ul id="appointments-list">
+            <!-- Appointments will be displayed here -->
+        </ul>
+    </div>
+</body>
+
+</html>
